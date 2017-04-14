@@ -1,0 +1,96 @@
+---
+title: "Data Wrangling Exercise 1: Basic Data Manipulation"
+output: html_notebook
+---
+
+Loading packages necessary for solving this exercise.
+
+```{r}
+library(readr)
+library(dplyr)
+library(tidyr)
+```
+
+Read in the CSV file and create a 'clean' file.
+
+```{r}
+refine_original <- read_csv("refine_original.csv")
+
+refine_clean <- refine_original
+```
+
+1: Clean up brand names
+Clean up the 'company' column so all of the misspellings of the brand names are standardized. For example, you can transform the values in the column to be: philips, akzo, van houten and unilever (all lowercase).
+
+```{r}
+refine_clean$company <- gsub(pattern = ".*ps", replacement = "philips", ignore.case = TRUE, x = refine_clean$company)
+refine_clean$company <- gsub(pattern = "ak.*", replacement = "akzo", ignore.case = TRUE, x = refine_clean$company)
+refine_clean$company <- gsub(pattern = "van.*", replacement = "van houten", ignore.case = TRUE, x = refine_clean$company)
+refine_clean$company <- gsub(pattern = "uni.*", replacement = "unilever", ignore.case = TRUE, x = refine_clean$company)
+```
+
+For the pattern, I simply eyeballed the unique parts of each name, using wildcards where appropriate.  This ensured that the replacement did not replace only part of name but instead replaced the entire name with what I wanted.  I set ignore.case to TRUE so I did not have to account for capitalization issues.
+
+
+2: Separate product code and number
+Separate the product code and product number into separate columns i.e. add two new columns called product_code and product_number, containing the product code and number respectively.
+
+```{r}
+refine_clean <- separate(refine_clean, "Product code / number", into = c("product_code", "product_number"), remove = FALSE, sep = "-")
+```
+
+
+3: Add product categories
+You learn that the product codes actually represent the following product categories:
+*p = Smartphone
+*v = TV
+*x = Laptop
+*q = Tablet
+In order to make the data more readable, add a column with the product category for each record.
+```{r}
+refine_clean$product_category <- NA
+refine_clean$product_category[refine_clean$product_code == "p"] <- "Smartphone"
+refine_clean$product_category[refine_clean$product_code == "v"] <- "TV"
+refine_clean$product_category[refine_clean$product_code == "x"] <- "Laptop"
+refine_clean$product_category[refine_clean$product_code == "q"] <- "Tablet"
+```
+
+I created a new column 'product_category' and set all the values to NA.  Once I had done that I used the value of 'product_code' to set the corresponding value in 'product_category'.
+
+
+4: Add full address for geocoding
+You'd like to view the customer information on a map. In order to do that, the addresses need to be in a form that can be easily geocoded. Create a new column full_address that concatenates the three address fields (address, city, country), separated by commas.
+
+```{r}
+refine_clean <- unite(refine_clean, "full_address", address:country, sep = ", ", remove = FALSE)
+```
+
+I added an extra space after to comma for the sake of readability.
+
+
+5: Create dummy variables for company and product category
+Both the company name and product category are categorical variables i.e. they take only a fixed set of values. In order to use them in further analysis you need to create dummy variables. Create dummy binary variables for each of them with the prefix company_ and product_ i.e.,
+1. Add four binary (1 or 0) columns for company: company_philips, company_akzo, company_van_houten and company_unilever.
+2. Add four binary (1 or 0) columns for product category: product_smartphone, product_tv, product_laptop and product_tablet.
+
+```{r}
+refine_clean$company_philips <- 0
+refine_clean$company_philips[refine_clean$company == "philips"] <- 1
+refine_clean$company_akzo <- 0
+refine_clean$company_akzo[refine_clean$company == "akzo"] <- 1
+refine_clean$company_van_houten <- 0
+refine_clean$company_van_houten[refine_clean$company == "van houten"] <- 1
+refine_clean$company_unilever <- 0
+refine_clean$company_unilever[refine_clean$company == "unilever"] <- 1
+
+refine_clean$product_smartphone <- 0
+refine_clean$product_smartphone[refine_clean$product_category == "Smartphone"] <- 1
+refine_clean$product_tv <- 0
+refine_clean$product_tv[refine_clean$product_category == "TV"] <- 1
+refine_clean$product_laptop <- 0
+refine_clean$product_laptop[refine_clean$product_category == "Laptop"] <- 1
+refine_clean$product_tablet <- 0
+refine_clean$product_tablet[refine_clean$product_category == "Tablet"] <- 1
+```
+
+I used a similar process to what I had done in Step 3, where I created a column, set the values (0 this time instead of NA), and then used the values of another column to set the values in the newly created column.
